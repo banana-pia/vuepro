@@ -1,24 +1,18 @@
 <template>
-  <div id="app">
-    <div class='box'></div>
+  <div id="">
+    <router-view></router-view>
+    <FooterGuide></FooterGuide>
   </div>
 </template>
 
 <script>
+import FooterGuide from './components/FooterGuide/FooterGuide'
 export default {
-
+  components:{
+    FooterGuide
+  }
 }
  
 </script>
 <style lang='stylus' rel="stylesheet/stylus">
-
-  $color = green  
-  boxStyle(w,h,bg)
-    width w
-    height h
-    border none 
-    background bg
-  .box
-    boxStyle(100px,100px,$color)
-
 </style>
