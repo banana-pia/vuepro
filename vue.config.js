@@ -25,5 +25,16 @@ module.exports = {
         '@components': path.resolve(__dirname, 'src/components')
       }
     }
+  },
+  devServer:{
+    proxy:{
+      '/api':{
+        target:"http://localhost:4000",
+        pathRewrite:{
+          "^/api":""
+        },
+        changeOrigin:true,
+      }
+    }
   }
 }
