@@ -3,5 +3,7 @@ export default{
     latitude:40.10038,
     address:{},
     categorys:[],
-    shops:[]
+    shops:[],
+    token:localStorage.getItem("token_key") || "",
+    user:{},
 }

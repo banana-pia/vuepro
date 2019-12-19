@@ -13,7 +13,11 @@ export default {
   components:{
     Header,
     FooterGuide
-  }
+  },
+  async mounted() {
+    this.$store.dispatch('getAddress')
+    this.$store.dispatch('autoLogin')
+  },
 }
  
 </script>

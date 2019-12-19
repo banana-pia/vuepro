@@ -1,3 +1,7 @@
 export const POSITION = "position"
 export const SHOPS = "shops"
 export const CATEGORY = "category"
+export const SAVETOKEN = "saveToken"
+export const SAVEUSER = "saveUser"
+export const CLEANTOKEN = "cleanToken"
+export const CLEANUSER = "cleanUser"

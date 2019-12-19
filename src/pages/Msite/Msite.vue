@@ -111,9 +111,11 @@ export default {
   
   computed:{
     ...mapState(['address',"categorys","shops"]),
+
   
     // ...mapActions(["getAddress","getCategorys","getShops"]),
     categorysArr(){
+      let {categorys} = this
       const bigArr = []
       let smallArr = []
       categorys.forEach(c => {

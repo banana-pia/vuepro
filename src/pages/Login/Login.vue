@@ -12,11 +12,17 @@
         <form>
           <div :class="{on:isShowSms}" >
             <section class="login_message">
-              <input type="tel" maxlength="11" placeholder="手机号" v-model="Phone">
-              <button disabled="" class="get_verification">获取验证码</button>
+              <input type="tel" maxlength="11" placeholder="手机号" v-model="phone" name="phone"
+                v-validate="'required|mobile'">
+              <button :disabled="!isRightPhone || computTime>0" class="get_verification" 
+                :class="{isRight:isRightPhone}" @click.prevent='sendCode'>
+                {{computTime > 0 ? `验证码已发送（${computTime}s)`: "获取验证码"}}
+              </button>
             </section>
+            <span style="color: red;" v-show="errors.has('phone')">{{ errors.first('phone') }}</span>
             <section class="login_verification">
-              <input type="tel" maxlength="8" placeholder="验证码">
+              <input type="tel" maxlength="8" placeholder="验证码"
+                v-model="code" name="code" v-validate="{required: true,regex: /^\d{6}$/}">
             </section>
             <section class="login_hint">
               温馨提示：未注册硅谷外卖帐号的手机号，登录时将自动注册，且代表已同意
@@ -26,22 +32,28 @@
           <div :class="{on:!isShowSms}" >
             <section>
               <section class="login_message">
-                <input type="tel" maxlength="11" placeholder="手机/邮箱/用户名">
+                <input type="tel" maxlength="11" placeholder="手机/邮箱/用户名"
+                   v-model="name" name="name" v-validate="'required'">
+                <span style="color: red;" v-show="errors.has('name')">{{ errors.first('name') }}</span>
               </section>
               <section class="login_verification">
-                <input type="tel" maxlength="8" placeholder="密码">
-                <div class="switch_button off">
-                  <div class="switch_circle"></div>
+                <input :type="isShowPwde ? 'text' : 'password'" maxlength="8" placeholder="密码"
+                 v-model="pwd" name="pwd" v-validate="'required'">
+                <div class="switch_button " @click="isShowPwde = !isShowPwde" :class="isShowPwde? 'on' : 'off'">
+                  <div class="switch_circle" :class="{do:isShowPwde}"></div>
                   <span class="switch_text">...</span>
                 </div>
+                <span style="color: red;" v-show="errors.has('pwd')">{{ errors.first('pwd') }}</span>
               </section>
               <section class="login_message">
-                <input type="text" maxlength="11" placeholder="验证码">
-                <img class="get_verification" src="./images/captcha.svg" alt="captcha">
+                <input type="text" maxlength="11" placeholder="验证码"
+                  v-model="captcha" name="captcha" v-validate="{required: true,regex: /^[0-9a-zA-Z]{4}$/}">
+                <img class="get_verification" src="http://localhost:4000/captcha" alt="captcha" ref="captcha" @click="updateCaptcha">
+                 <span style="color: red;" v-show="errors.has('captcha')">{{ errors.first('captcha') }}</span>
               </section>
             </section>
           </div>
-          <button class="login_submit">登录</button>
+          <button class="login_submit" @click.prevent="login">登录</button>
         </form>
         <a href="javascript:;" class="about_us">关于我们</a>
       </div>
@@ -53,20 +65,76 @@
   
 </template>
 <script>
+import {Toast ,MessageBox} from 'mint-ui'
 export default {
   data(){
     return{
       isShowSms:false,
+      name:'',
       phone:'',
-      isShowPwde:false
+      code:'',
+      isShowPwde:false,
+      pwd:"",
+      captcha:'',
+      computTime: 0
     }
   },
   computed:{
     isRightPhone(){
       return /^1\d{10}$/.test(this.phone)
     }
-  }
-  
+  },
+  methods: {
+    async sendCode(){
+      this.computTime = 10
+      const interval = setInterval(()=>{
+        this.computTime--
+        if(this.computTime <= 0){
+          this.computTime = 0
+          clearInterval(interval)
+        }
+      },1000)
+      const result = await this.$API.reqSendCode(this.phone)
+      if(result.code === 0){
+        Toast('消息已发送')
+      }else{
+        MessageBox("提示:", result.msg || "发送失误")
+      }
+        
+    },
+    async login () {
+        // 进行前台表单验证
+        let names
+        if (this.isShowSms) {
+          names = ['phone', 'code']
+        } else {
+          names = ['name', 'pwd', 'captcha']
+        } 
+        const success = await this.$validator.validateAll(names)
+        if(success){
+          let {isShowSms,name,pwd,phone,code,captcha} = this
+          let result
+          if(isShowSms){
+            result = await this.$API.reqPhoneSws(phone,code)
+          }else{
+            result = await this.$API.reqPhonePwd(name,pwd,captcha)
+            
+          }
+          if(result.code === 0){
+            this.$router.replace({path:"/profile"})
+            this.$store.dispatch("saveUser",result.data)
+          }
+          this.updateCaptcha()
+        }
+        
+    },
+    
+    updateCaptcha(){
+      this.$refs.captcha.src = 'http://localhost:4000/captcha?time=' + Date.now()
+    }
+
+  },
+
 }
 </script>
 <style scoped lang="stylus" rel="styleshet/stylus">
@@ -121,6 +189,7 @@ export default {
                 height 48px
                 font-size 14px
                 background #fff
+                
                 .get_verification
                   position absolute
                   top 50%
@@ -130,6 +199,8 @@ export default {
                   color #ccc
                   font-size 14px
                   background transparent
+                  &.isRight
+                    color:black
               .login_verification
                 position relative
                 margin-top 16px
@@ -163,12 +234,14 @@ export default {
                     top -1px
                     left -1px
                     width 16px
-                    height 16px
+                    height 16px3
                     border 1px solid #ddd
                     border-radius 50%
                     background #fff
                     box-shadow 0 2px 4px 0 rgba(0,0,0,.1)
                     transition transform .3s
+                    &.do 
+                      transform translateX(27px)
               .login_hint
                 margin-top 12px
                 color #999
